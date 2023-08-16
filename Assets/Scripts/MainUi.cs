@@ -56,7 +56,7 @@ public class MainUi : MonoBehaviour
                 codeInputField.ActivateInputField();
             }
         }
-        if (Input.GetKeyDown(KeyCode.F5))
+        if (Input.GetKeyDown(KeyCode.F5) || Input.GetKeyDown(KeyCode.F2))
         {
             interpreterFrontend.RunCode(codeInputField.text);
         }

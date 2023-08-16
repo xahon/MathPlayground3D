@@ -1,6 +1,7 @@
 # About
 Unity-based 3D playground for testing/prototyping math/geometry algorithms.  
 The project is a WIP.  
+**See in action**: https://xahon.github.io/MathSandbox3D/  
 
 # Features
 - 3D scene with a mouse/keyboard controllable camera
@@ -21,7 +22,7 @@ The project is a WIP.
 # Usage
 ## Keyboard shortcuts
 - `~`: Toggle LUA script editor
-- `F5`: Execute current LUA script
+- `F5`,`F2`: Execute current LUA script
 - `RMB` (hold): Enter camera control mode
 - `WASDQE`: Move camera in WASD-space + QE for up/down
 
