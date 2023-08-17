@@ -7,7 +7,7 @@ public class TriangleObject : GraphicsObject
     private Vector3 p3;
     private bool filled;
 
-    public void SetPoints(Vector3 p1, Vector3 p2, Vector3 p3, bool filled)
+    public void SetData(Vector3 p1, Vector3 p2, Vector3 p3, bool filled)
     {
         this.p1 = p1;
         this.p2 = p2;
@@ -15,7 +15,7 @@ public class TriangleObject : GraphicsObject
         this.filled = filled;
     }
 
-    protected virtual void OnRenderObject()
+    protected override void OnRenderObject()
     {
         base.OnRenderObject();
 
@@ -29,6 +29,9 @@ public class TriangleObject : GraphicsObject
             GL.Vertex(p1);
             GL.Vertex(p2);
             GL.Vertex(p3);
+            GL.Vertex(p1);
+            GL.Vertex(p3);
+            GL.Vertex(p2);
             GL.End();
         }
         else
