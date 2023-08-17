@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using JetBrains.Annotations;
 using MoonSharp.Interpreter;
 using MoonSharp.Interpreter.Interop;
 using UnityEngine;
+using UnityEngine.Scripting;
 
 public class InterpreterFrontendException : Exception
 {
@@ -26,6 +30,16 @@ public class InterpreterFrontend : MonoBehaviour
     private bool isInUpdate = false;
     private API api;
 
+    private class LuaFunctionAttribute : Attribute
+    {
+        public string LuaFuncName { get; }
+
+        public LuaFunctionAttribute(string luaFuncName)
+        {
+            LuaFuncName = luaFuncName;
+        }
+    }
+
     private void Awake()
     {
         api = new API(this);
@@ -35,13 +49,46 @@ public class InterpreterFrontend : MonoBehaviour
         LuaCustomConverters.RegisterAll();
 
         script = new Script();
-        script.Globals["print"] = DynValue.NewCallback(api.Log);
-        script.Globals["input"] = DynValue.NewCallback(api.DefineUserInput);
-        script.Globals["color_norm"] = DynValue.NewCallback(api.SetColorNorm);
-        script.Globals["color"] = DynValue.NewCallback(api.SetColor);
-        script.Globals["line"] = DynValue.NewCallback(api.DrawLine);
-        script.Globals["vector"] = DynValue.NewCallback(api.DrawVector);
-        script.Globals["tri"] = DynValue.NewCallback(api.DrawTriangle);
+
+        // Bind all Lua functions
+        HashSet<string> registeredLuaFuncNames = new HashSet<string>();
+        Assembly.GetCallingAssembly().GetTypes()
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
+            .Where(m => m.GetCustomAttributes(typeof(LuaFunctionAttribute), false).Length > 0)
+            .ToList()
+            .ForEach(m =>
+            {
+                ParameterInfo[] parameters = m.GetParameters();
+                bool parametersOk =
+                    parameters.Length == 2 &&
+                    parameters[0].ParameterType == typeof(ScriptExecutionContext) &&
+                    parameters[1].ParameterType == typeof(CallbackArguments);
+
+                if (m.ReturnParameter == null || m.ReturnParameter.ParameterType != typeof(DynValue) || !parametersOk)
+                {
+                    Debug.LogError($"Lua function {m.Name} has invalid signature");
+                    return;
+                }
+
+                string luaFuncName = ((LuaFunctionAttribute)m.GetCustomAttributes(typeof(LuaFunctionAttribute), false)[0]).LuaFuncName;
+                if (!registeredLuaFuncNames.Add(luaFuncName))
+                {
+                    Debug.LogError($"Lua function {luaFuncName} is already registered");
+                    return;
+                }
+
+                Func<ScriptExecutionContext, CallbackArguments, DynValue> func;
+                if (m.IsStatic)
+                {
+                    func = (ctx, args) => (DynValue)m.Invoke(null, new object[] { ctx, args });
+                }
+                else
+                {
+                    func = (ctx, args) => (DynValue)m.Invoke(api, new object[] { ctx, args });
+                }
+
+                script.Globals[luaFuncName] = DynValue.NewCallback(func);
+            });
     }
 
     private void LateUpdate()
@@ -94,6 +141,9 @@ public class InterpreterFrontend : MonoBehaviour
             this.interpreter = interpreter;
         }
 
+        [Preserve]
+        [UsedImplicitly]
+        [LuaFunction("print")]
         public DynValue Log(ScriptExecutionContext ctx, CallbackArguments args)
         {
             switch (args[0].Type)
@@ -122,6 +172,9 @@ public class InterpreterFrontend : MonoBehaviour
             return DynValue.Nil;
         }
 
+        [Preserve]
+        [UsedImplicitly]
+        [LuaFunction("input")]
         public DynValue DefineUserInput(ScriptExecutionContext ctx, CallbackArguments args)
         {
             if (interpreter.isInUpdate)
@@ -167,6 +220,9 @@ public class InterpreterFrontend : MonoBehaviour
             return DynValue.Nil;
         }
 
+        [Preserve]
+        [UsedImplicitly]
+        [LuaFunction("color_norm")]
         public DynValue SetColorNorm(ScriptExecutionContext ctx, CallbackArguments args)
         {
             float r = (float)args[0].Number;
@@ -182,6 +238,9 @@ public class InterpreterFrontend : MonoBehaviour
             return DynValue.Nil;
         }
 
+        [Preserve]
+        [UsedImplicitly]
+        [LuaFunction("color")]
         public DynValue SetColor(ScriptExecutionContext ctx, CallbackArguments args)
         {
             float r = (float)args[0].Number / 255.0f;
@@ -197,6 +256,9 @@ public class InterpreterFrontend : MonoBehaviour
             return DynValue.Nil;
         }
 
+        [Preserve]
+        [UsedImplicitly]
+        [LuaFunction("line")]
         public DynValue DrawLine(ScriptExecutionContext ctx, CallbackArguments args)
         {
             Vector3 p1 = args[0].ToObject<Vector3>();
@@ -206,6 +268,9 @@ public class InterpreterFrontend : MonoBehaviour
             return DynValue.Nil;
         }
 
+        [Preserve]
+        [UsedImplicitly]
+        [LuaFunction("vector")]
         public DynValue DrawVector(ScriptExecutionContext ctx, CallbackArguments args)
         {
             Vector3 origin = args[0].ToObject<Vector3>();
@@ -215,6 +280,9 @@ public class InterpreterFrontend : MonoBehaviour
             return DynValue.Nil;
         }
 
+        [Preserve]
+        [UsedImplicitly]
+        [LuaFunction("tri")]
         public DynValue DrawTriangle(ScriptExecutionContext ctx, CallbackArguments args)
         {
             Vector3 p1 = args[0].ToObject<Vector3>();
