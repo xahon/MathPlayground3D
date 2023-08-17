@@ -297,5 +297,17 @@ public class InterpreterFrontend : MonoBehaviour
             interpreter.sandbox.DrawTriangle(p1, p2, p3, filled);
             return DynValue.Nil;
         }
+
+        [Preserve]
+        [UsedImplicitly]
+        [LuaFunction("sphere")]
+        public DynValue DrawSphere(ScriptExecutionContext ctx, CallbackArguments args)
+        {
+            Vector3 center = args[0].ToObject<Vector3>();
+            float radius = (float)args[1].Number;
+
+            interpreter.sandbox.DrawSphere(center, radius);
+            return DynValue.Nil;
+        }
     }
 }

@@ -23,15 +23,20 @@ public class Sandbox : MonoBehaviour
         isInitStep = true;
     }
 
-    [Preserve]
-    [UsedImplicitly]
+    public void BeginFrame()
+    {
+    }
+
+    public void EndFrame()
+    {
+        isInitStep = false;
+    }
+
     public void SetColor(float r, float g, float b, float a)
     {
         nextColor = new Color(r, g, b, a);
     }
 
-    [Preserve]
-    [UsedImplicitly]
     public void DrawLine(Vector3 p1, Vector3 p2)
     {
         LineObject obj = null;
@@ -52,11 +57,9 @@ public class Sandbox : MonoBehaviour
         }
 
         obj.SetColor(nextColor);
-        obj.SetPoints(p1, p2);
+        obj.SetData(p1, p2);
     }
 
-    [Preserve]
-    [UsedImplicitly]
     public void DrawVector(Vector3 origin, Vector3 scaledDir)
     {
         VectorObject obj = null;
@@ -80,8 +83,6 @@ public class Sandbox : MonoBehaviour
         obj.SetData(origin, scaledDir);
     }
 
-    [Preserve]
-    [UsedImplicitly]
     public void DrawTriangle(Vector3 p1, Vector3 p2, Vector3 p3, bool filled)
     {
         TriangleObject obj = null;
@@ -102,15 +103,29 @@ public class Sandbox : MonoBehaviour
         }
 
         obj.SetColor(nextColor);
-        obj.SetPoints(p1, p2, p3, filled);
+        obj.SetData(p1, p2, p3, filled);
     }
 
-    public void BeginFrame()
+    public void DrawSphere(Vector3 center, float radius)
     {
-    }
+        SphereObject obj = null;
+        string name = "Sphere " + center + ", " + radius;
 
-    public void EndFrame()
-    {
-        isInitStep = false;
+        if (isInitStep)
+        {
+            obj = new GameObject(name).AddComponent<SphereObject>();
+            obj.transform.parent = transform;
+            obj.Init(this);
+            objects.Add(obj);
+        }
+        else
+        {
+            obj = (SphereObject)objects[internalCounter];
+            obj.gameObject.name = name;
+            internalCounter = (internalCounter + 1) % objects.Count;
+        }
+
+        obj.SetColor(nextColor);
+        obj.SetData(center, radius);
     }
 }

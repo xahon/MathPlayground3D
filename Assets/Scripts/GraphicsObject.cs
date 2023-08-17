@@ -19,7 +19,7 @@ public class GraphicsObject : MonoBehaviour
         mat.SetInt("_ZWrite", 0);
     }
 
-    internal void SetColor(Color color)
+    internal virtual void SetColor(Color color)
     {
         mat.SetColor("_Color", color);
     }
